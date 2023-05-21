@@ -36,7 +36,7 @@ public class GetProgramInText {
 
       String SHAPKA = "Мы сгенерировали вам программу тренировок. \uD83D\uDCAA\uD83C\uDFFB \n" +
               "И отправили ее на редактирование тренеру " +
-              "Общие реккомендации: \n Ваш индекс тела " + client.getHeight()/ client.getWeight() + ". По " +
+              "Общие реккомендации: \n Ваш индекс тела " + indexOfBody()   + ". По " +
               "нормам это " + aboutIndexOfBody() + " " + getNumOfRepeat() + "\n " + "Первый день: " + "\n";
 
       int i=1;
@@ -49,6 +49,7 @@ public class GetProgramInText {
          i++;
       }
       firstDay.append("\n" + "Второй день " + "\n");
+
 
        i =1;
       StringBuilder secondDay = new StringBuilder();
@@ -72,7 +73,7 @@ public class GetProgramInText {
       result.append(firstDay);
       result.append(secondDay);
       result.append(thirdDay);
-
+      result.append("\n");
       return result.toString();
    }
 
@@ -93,8 +94,8 @@ public class GetProgramInText {
       else return 16;
    }
 
-   public int indexOfBody() {
-      return client.getHeight() / client.getWeight();
+   public double indexOfBody() {
+      return client.getWeight()/(client.getHeight()* client.getHeight()*0.0001);
    }
 
    public ArrayList<Exercise> getListExercicesForFirstDay() {

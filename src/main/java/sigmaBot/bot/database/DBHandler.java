@@ -3,6 +3,7 @@ package sigmaBot.bot.database;
 import org.sqlite.JDBC;
 import sigmaBot.bot.generate.Client;
 import sigmaBot.bot.generate.Exercise;
+import sigmaBot.bot.generate.Program;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -36,19 +37,37 @@ public class DBHandler {
 
     public void addUser(String username, int height, int weight, int age, int experience) {
         try (
-                PreparedStatement statement = this.connection.prepareStatement("INSERT INTO clients " +
-                        "(`idClient`, `height`, `weight`, `age`, `idProgram`, `experience`) values (?, ?, ?, ?, ?, ?)")) {
-            statement.setObject(1, username);
-            statement.setObject(2, height);
-            statement.setObject(3, weight);
-            statement.setObject(4, age);
-            statement.setObject(5, null);
-            statement.setObject(6, experience);
-            statement.execute();
+                PreparedStatement selectStatement = this.connection.prepareStatement("SELECT COUNT(*) FROM clients WHERE idClient = ?");
+                PreparedStatement insertStatement = this.connection.prepareStatement("INSERT INTO clients (idClient, height, weight, age, idProgram, experience) values (?, ?, ?, ?, ?, ?)");
+                PreparedStatement updateStatement = this.connection.prepareStatement("UPDATE clients SET height = ?, weight = ?, age = ?, experience = ? WHERE idClient = ?");
+        ) {
+            // Check if a row with the given username already exists
+            selectStatement.setString(1, username);
+            ResultSet resultSet = selectStatement.executeQuery();
+            int count = resultSet.getInt(1);
+            if (count == 0) {
+                // Insert a new row
+                insertStatement.setString(1, username);
+                insertStatement.setInt(2, height);
+                insertStatement.setInt(3, weight);
+                insertStatement.setInt(4, age);
+                insertStatement.setNull(5, java.sql.Types.INTEGER);
+                insertStatement.setInt(6, experience);
+                insertStatement.executeUpdate();
+            } else {
+                // Update the existing row
+                updateStatement.setInt(1, height);
+                updateStatement.setInt(2, weight);
+                updateStatement.setInt(3, age);
+                updateStatement.setInt(4, experience);
+                updateStatement.setString(5, username);
+                updateStatement.executeUpdate();
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
+
 
     public List<ArrayList<Object>> getAllExercise() throws SQLException {
 //
@@ -171,7 +190,46 @@ public class DBHandler {
 
         return exercises;
     }
+    public ArrayList<Program> getAllProgrammForClient(String username) throws SQLException {
+        Client client;
+        try {
+            client = this.getClientById(username);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM programs WHERE (`idClient` LIKE ?)  ");
+        preparedStatement.setString(1, client.getIdClient());
+        ResultSet rs = preparedStatement.executeQuery();
 
+        ArrayList<Program> programs = new ArrayList<>();
+
+        while(rs.next()){
+            int idProgram = rs.getInt("idProgram");
+            boolean isMas = rs.getBoolean("isMas");
+            int indexOfBody = rs.getInt("indexOfBody");
+            boolean isCurrent = rs.getBoolean("isCurrent");
+            boolean isRedact = rs.getBoolean("isRedact");
+
+            PreparedStatement preparedStatement2 = connection.prepareStatement("SELECT * FROM programs_exercises WHERE (`program_id`= ?)  ");
+            preparedStatement2.setInt(1, idProgram);
+            ResultSet rs2 = preparedStatement2.executeQuery();
+            ArrayList<Integer> idOfExercises = new ArrayList<>();
+            while(rs2.next()){
+                idOfExercises.add(rs2.getInt("exercise_id"));
+            }
+            int[] exer = new int[idOfExercises.size()];
+            int g = 0;
+            for(Integer i: idOfExercises){
+                exer[g] = i;
+                g++;
+            }
+            ArrayList<Exercise> exerciseArrayList = this.getChoiceExercise(exer);
+
+            Program program = new Program(client, isMas, isRedact, exerciseArrayList);
+            programs.add(program);
+        }
+        return programs;
+    }
 
 
 

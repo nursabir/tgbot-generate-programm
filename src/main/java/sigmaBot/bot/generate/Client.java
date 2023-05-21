@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class Client {
+    DBHandler db;
 
     String idClient;
     int height;
@@ -16,6 +17,23 @@ public class Client {
     int age;
     int experience;
     public Client(){
+    }
+    public Client(String username){
+        try {
+            this.db = DBHandler.getInstance();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        Client client;
+        try {
+            client = db.getClientById(username);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        height = client.height;
+        weight = client.weight;
+        age = client.age;
+        experience = client.experience;
     }
 
 
