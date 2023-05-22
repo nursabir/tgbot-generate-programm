@@ -23,6 +23,11 @@ public class GetProgramInText {
       } catch (SQLException e) {
          throw new RuntimeException(e);
       }
+      try {
+         this.isRedact = db.isRedactProgram(db.getIdCurrentProgramm(client.idClient));
+      } catch (SQLException e) {
+         throw new RuntimeException(e);
+      }
       this.client = client;
       this.isMas = ClientFunctionality.isMas();
    }
@@ -73,6 +78,7 @@ public class GetProgramInText {
       result.append(firstDay);
       result.append(secondDay);
       result.append(thirdDay);
+      if(isRedact) result.append("Программа отредактирована ✔️"); else result.append("Программа не отредактирована ❌");
       result.append("\n");
       return result.toString();
    }

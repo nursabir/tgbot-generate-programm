@@ -1,6 +1,7 @@
 package sigmaBot.bot.database;
 
 import org.sqlite.JDBC;
+import sigmaBot.bot.fucntionality.TrainerFunctionality;
 import sigmaBot.bot.generate.Client;
 import sigmaBot.bot.generate.Exercise;
 import sigmaBot.bot.generate.Program;
@@ -8,6 +9,7 @@ import sigmaBot.bot.generate.Program;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class DBHandler {
 
@@ -90,6 +92,37 @@ public class DBHandler {
         return tableData;
     }
 
+    public List<Exercise> getTrainerChoiseExercises(String username) throws SQLException {
+        List<Exercise> listOfExercicesForClient = getListOfExercicesForClient(getClientById(username));
+        List<ArrayList<Object>> tableData = getAllExercise();
+        List<Exercise> listAllExer = new ArrayList<>();
+
+        for (ArrayList<Object> arrayList : tableData) {
+            Exercise exercise = new Exercise();
+            exercise.setId_exercise((Integer) arrayList.get(0));
+            exercise.setName((String) arrayList.get(1));
+            boolean isAbility = (Integer) arrayList.get(2) == 1;
+            exercise.setAbilitty(isAbility);
+            exercise.setDescription((String) arrayList.get(3));
+            exercise.setAimGroup((String) arrayList.get(4));
+            exercise.setNecessaryExperience((Integer) arrayList.get(5));
+            listAllExer.add(exercise);
+        }
+        return filterExercises(listAllExer, listOfExercicesForClient);
+    }
+
+    public List<Exercise> filterExercises(List<Exercise> firstList, List<Exercise> secondList) {
+        List<Integer> secondListIds = secondList.stream()
+                .map(Exercise::getId_exercise)
+                .collect(Collectors.toList());
+
+        List<Exercise> filteredList = firstList.stream()
+                .filter(e -> !secondListIds.contains(e.getId_exercise()))
+                .collect(Collectors.toList());
+
+        return filteredList;
+    }
+
     // возвращаем всю информацию об упражнениях которые выбрал пользователь по индексам
     public ArrayList<Exercise> getChoiceExercise(int[] mas) throws SQLException {
         ArrayList<Exercise> result = new ArrayList<>();
@@ -133,7 +166,7 @@ public class DBHandler {
         st.setBoolean(1, isMas);
         st.setString(2, idClient);
         st.setInt(3, indexOfBody);
-        st.setBoolean(4,isCurrent);
+        st.setBoolean(4, isCurrent);
         st.execute();
 
         PreparedStatement st3 = connection.prepareStatement("select `idProgram` from programs ORDER BY `idProgram` DESC LIMIT 1");
@@ -146,6 +179,68 @@ public class DBHandler {
             st2.setInt(2, e.getId_exercise());
             st2.execute();
         }
+    }
+
+    public void updateCurrentProgram() {
+        try {
+            ArrayList<Exercise> currentExercises = getListOfExercicesForClient(getClientById(TrainerFunctionality.getWhoIs()));
+            ArrayList<String> idOfNewExercises = TrainerFunctionality.getIdOfChoiceExercise();
+            int[] a = new int[idOfNewExercises.size()];
+            int i = 0;
+            for (String s : idOfNewExercises) {
+                a[i] = Integer.parseInt(s);
+                i++;
+            }
+            ArrayList<Exercise> newExercises = getChoiceExercise(a);
+            Program currentProgram = this.getCurrentProgramClient(TrainerFunctionality.getWhoIs());
+            int idCurrentProgram = getIdCurrentProgramm(TrainerFunctionality.getWhoIs());
+            for(Exercise e: newExercises) {
+                PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO programs_exercises(program_id, exercise_id) VALUES(?, ?)" );
+                preparedStatement.setInt(1, idCurrentProgram);
+                preparedStatement.setInt(2, e.getId_exercise());
+                preparedStatement.execute();
+            }
+            PreparedStatement preparedStatement = connection.prepareStatement("UPDATE programs SET isRedact=true WHERE idProgram =?");
+            preparedStatement.setInt(1, idCurrentProgram);
+            preparedStatement.execute();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public int getIdCurrentProgramm(String username) throws SQLException {
+        Client client = getClientById(username);
+        ArrayList<Exercise> exercises = getListOfExercicesForClient(client);
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM programs WHERE (`idClient` LIKE ?) and (`isCurrent`=?) ");
+        preparedStatement.setString(1, client.getIdClient());
+        preparedStatement.setInt(2, 1);
+        ResultSet rs = preparedStatement.executeQuery();
+
+        int idProgram = rs.getInt("idProgram");
+        boolean isMas = rs.getBoolean("isMas");
+        boolean isRedact = rs.getBoolean("isRedact");
+
+        Program program = new Program(client, isMas, isRedact, exercises);
+        return idProgram;
+    }
+
+
+
+    public Program getCurrentProgramClient(String username) throws SQLException {
+        Client client = getClientById(username);
+        ArrayList<Exercise> exercises = getListOfExercicesForClient(client);
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM programs WHERE (`idClient` LIKE ?) and (`isCurrent`=?) ");
+        preparedStatement.setString(1, client.getIdClient());
+        preparedStatement.setInt(2, 1);
+        ResultSet rs = preparedStatement.executeQuery();
+
+        int idProgram = rs.getInt("idProgram");
+        boolean isMas = rs.getBoolean("isMas");
+        boolean isRedact = rs.getBoolean("isRedact");
+
+        Program program = new Program(client, isMas, isRedact, exercises);
+        return program;
     }
 
     public ArrayList<Exercise> getListOfExercicesForClient(Client client) throws SQLException {
@@ -170,7 +265,7 @@ public class DBHandler {
 
         ResultSet rs2 = preparedStatement1.executeQuery();
 
-        while(rs2.next()){
+        while (rs2.next()) {
 
             idOfExercises.add(rs2.getInt("exercise_id"));
         }
@@ -184,12 +279,50 @@ public class DBHandler {
         exercises = getChoiceExercise(intArray);
 
         String test = "";
-        for(Exercise e: exercises){
+        for (Exercise e : exercises) {
             test = test.concat(e.toString());
         }
 
         return exercises;
     }
+
+    public void setRedactCurrentProg(){
+        String whois = TrainerFunctionality.getWhoIs();
+        Program program;
+        try {
+         program = getCurrentProgramClient(whois);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = connection.prepareStatement("UPDATE programs set isRedact = 1 WHERE idProgram=?");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            preparedStatement.setInt(1, getIdCurrentProgramm(whois));
+            preparedStatement.execute();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean isRedactProgram(int idProgram){
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = connection.prepareStatement("SELECT isRedact from programs where idProgram = ?");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            preparedStatement.setInt(1, idProgram);
+            return  preparedStatement.executeQuery().getInt("isRedact") == 1;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public ArrayList<Program> getAllProgrammForClient(String username) throws SQLException {
         Client client;
         try {
@@ -203,7 +336,7 @@ public class DBHandler {
 
         ArrayList<Program> programs = new ArrayList<>();
 
-        while(rs.next()){
+        while (rs.next()) {
             int idProgram = rs.getInt("idProgram");
             boolean isMas = rs.getBoolean("isMas");
             int indexOfBody = rs.getInt("indexOfBody");
@@ -214,12 +347,12 @@ public class DBHandler {
             preparedStatement2.setInt(1, idProgram);
             ResultSet rs2 = preparedStatement2.executeQuery();
             ArrayList<Integer> idOfExercises = new ArrayList<>();
-            while(rs2.next()){
+            while (rs2.next()) {
                 idOfExercises.add(rs2.getInt("exercise_id"));
             }
             int[] exer = new int[idOfExercises.size()];
             int g = 0;
-            for(Integer i: idOfExercises){
+            for (Integer i : idOfExercises) {
                 exer[g] = i;
                 g++;
             }
@@ -231,6 +364,26 @@ public class DBHandler {
         return programs;
     }
 
+    public ArrayList<Client> getAllClients() {
+        ArrayList<Client> result = new ArrayList<>();
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM clients");
+            ResultSet rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                Client client = new Client();
+                client.setIdClient(rs.getString("idClient"));
+                client.setHeight(rs.getInt("height"));
+                client.setWeight(rs.getInt("weight"));
+                client.setIdProgram(rs.getInt("idProgram"));
+                client.setAge(rs.getInt("age"));
+                client.setExperience(rs.getInt("experience"));
+                result.add(client);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
 
 
 }

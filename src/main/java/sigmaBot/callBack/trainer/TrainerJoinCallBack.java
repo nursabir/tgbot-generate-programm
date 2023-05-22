@@ -19,6 +19,7 @@ public class TrainerJoinCallBack implements CallBack {
 
     @Override
     public void execute(Update update) {
+        System.out.println("dfdfdffdfdfd");
         sendBotMessageService.sendMessage(update.getCallbackQuery().getMessage().getChatId().toString(), "Нажмите, если хотите увидеть список пользователей, отправивших заявку на редактирование", getStartInlineKeyboardMarkup());
     }
 

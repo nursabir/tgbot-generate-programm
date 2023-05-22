@@ -79,6 +79,7 @@ public class Program {
         result.append(firstDay);
         result.append(secondDay);
         result.append(thirdDay);
+        System.out.println(isRedact);
         if(isRedact) result.append("Программа отредактирована ✔️"); else result.append("Программа не отредактирована ❌");
         result.append("\n");
         return result.toString();

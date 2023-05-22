@@ -26,7 +26,10 @@ public class ProgramPrinter {
             result.append(program.getTextCurrentProgramm());
         }
         return result.toString();
-
+    }
+    public String printCurrentProgramm(String username) throws SQLException {
+        Program program = dbHandler.getCurrentProgramClient(username);
+        return program.getTextCurrentProgramm();
     }
 
 }

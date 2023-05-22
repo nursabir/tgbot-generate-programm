@@ -54,7 +54,6 @@ public class ClientFunctionality extends BotFunctionality {
                 System.out.println("ееееесть");
                 System.out.println(command.getCallbackQuery().getMessage().getText());
                 idOfChoiceExercise.add(command.getCallbackQuery().getData());
-
             }
             System.out.println(command.getCallbackQuery().getData());
             if(command.getCallbackQuery().getData().equals(CLIENT_NABOR.toString())) isMas = true;
