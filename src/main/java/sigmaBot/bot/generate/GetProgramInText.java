@@ -133,6 +133,4 @@ public class GetProgramInText {
       }
       return result;
    }
-
-
 }

@@ -9,6 +9,7 @@ import sigmaBot.bot.fucntionality.ClientFunctionality;
 import sigmaBot.bot.fucntionality.Functionality;
 import sigmaBot.bot.fucntionality.TrainerFunctionality;
 import sigmaBot.command.CommandContainer;
+import sigmaBot.token.congif;
 
 import static sigmaBot.command.CommandName.NO;
 
@@ -25,7 +26,7 @@ public class Bot extends TelegramLongPollingBot {
 
     @Override
     public String getBotToken() {
-        return "5961500954:AAFmcCg4E0w_LXuoY8zweR-kH-UHI3y9mO8";
+        return congif.token ;
     }
 
     private final CommandContainer commandContainer;

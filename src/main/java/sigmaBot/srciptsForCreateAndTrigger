@@ -1,0 +1,56 @@
+create table exercises
+(
+    id_exercise         INTEGER, primary key;
+    name                varchar(255),
+    isAbility           boolean,
+    description         varchar(255),
+    aimGroup            varchar(255),
+    necessaryExperience INTEGER
+);
+
+create unique index exercises_id_exercise_uindex
+    on exercises (id_exercise);
+
+create table clients
+(
+    idClient   varchar(20) primary key,
+    height     INTEGER,
+    weight     INTEGER,
+    idProgram  INTEGER,
+    age        INTEGER,
+    experience INTEGER
+);
+create table programs
+(
+    idProgram        INTEGER
+        constraint programs_pk
+            primary key,
+    isMas            boolean,
+    indexOfBody      INTEGER,
+    isCurrent        boolean,
+    isRedact         boolean,
+    commentOfTrainer varchar(255),
+    idClient         varchar(255)
+);
+
+CREATE TRIGGER set_current_program3
+    AFTER INSERT ON programs
+    FOR EACH ROW
+BEGIN
+    UPDATE programs
+    SET isCurrent = 0
+    WHERE programs.idProgram != NEW.idProgram and idClient = new.idClient;
+
+    UPDATE programs
+    SET isCurrent = 1
+    WHERE idProgram = NEW.idProgram and idClient=new.idClient;
+END;
+create table programs_exercises
+(
+    program_id  INTEGER
+        references programs,
+    exercise_id INTEGER
+        references exercises (id_exercise)
+);
+
+
