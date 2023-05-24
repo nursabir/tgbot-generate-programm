@@ -34,7 +34,7 @@ public class Bot extends TelegramLongPollingBot {
     public Bot(){
         this.commandContainer = new CommandContainer(new SendBotMessageServiceImpl(this));
     }
-
+// передаем
     @Override
     public void onUpdateReceived(Update update) {
         this.update = update;
